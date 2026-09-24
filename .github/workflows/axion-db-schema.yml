@@ -40,7 +40,15 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
 
+          DB_NAME="${PGDATABASE:-axion_db}"
+
+          echo "Checking database: $DB_NAME"
+          if ! psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1; then
+            echo "Database $DB_NAME does not exist. Creating it..."
+            createdb -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" "$DB_NAME"
+          fi
+
           for f in ./*.sql; do
             echo "Executing: $f"
-            psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -f "$f"
+            psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$f"
           done
