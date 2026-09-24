@@ -18,6 +18,8 @@ jobs:
       PGUSER: ${{ secrets.PGUSER }}
       PGPASSWORD: ${{ secrets.PGPASSWORD }}
       PGSSLMODE: require
+      AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+      AZURE_POSTGRES_SERVER_NAME: ${{ secrets.AZURE_POSTGRES_SERVER_NAME }}
 
     steps:
       - name: Checkout repository
@@ -27,6 +29,15 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Allow pgcrypto extension on Azure PostgreSQL
+        if: ${{ env.AZURE_RESOURCE_GROUP != '' && env.AZURE_POSTGRES_SERVER_NAME != '' }}
+        run: |
+          az postgres flexible-server parameter set \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --server-name "$AZURE_POSTGRES_SERVER_NAME" \
+            --name azure.extensions \
+            --value PGCRYPTO
 
       - name: Install PostgreSQL client
         run: |
@@ -40,7 +51,7 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
 
-          DB_NAME="${PGDATABASE:-axion_db}"
+          DB_NAME="${PGDATABASE:-axiondb}"
 
           echo "Checking database: $DB_NAME"
           if ! psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1; then
