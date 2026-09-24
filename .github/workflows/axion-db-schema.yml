@@ -3,7 +3,7 @@ name: Axion DB Schema
 on:
   push:
     paths:
-      - 'axion-database-schema/*.sql'
+      - 'axion-database-schem/*.sql'
       - '.github/workflows/axion-db-schema.yml'
   workflow_dispatch:
 
@@ -34,12 +34,13 @@ jobs:
           sudo apt-get install -y postgresql-client
 
       - name: Apply schema files in order
-        working-directory: ./axion-database-schema
+        working-directory: ./axion-database-schem
         shell: bash
         run: |
           set -euo pipefail
+          shopt -s nullglob
 
-          for f in $(ls *.sql | sort); do
+          for f in ./*.sql; do
             echo "Executing: $f"
             psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -f "$f"
           done
